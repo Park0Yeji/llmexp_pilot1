@@ -301,6 +301,9 @@ function endTask() {
     URL.revokeObjectURL(url);
 
     alert("모든 로그가 저장되었습니다!");
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
 }
 
 async function validateAPIKey(key) {
