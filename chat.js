@@ -267,6 +267,13 @@ async function sendMessage() {
     // updateSendButtonState();
 }
 
+textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault(); // 기본 줄바꿈 막기
+        sendMessage();
+    }
+});
+
 function submitExpertise(level) {
     document.getElementById('expertise-popup').classList.add('hidden');
     const lastLog = allLogs.findLast(log => log.query === lastQuery);
