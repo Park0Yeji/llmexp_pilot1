@@ -182,6 +182,10 @@ async function sendMessage() {
     pendingUserMessage = userMessage;
     const escapedUserMessage = escapeHTML(pendingUserMessage)?.replace(/\n/g, "<br>");
     chat.innerHTML += `<div class="message user-message"><div class="bubble user-bubble">${escapedUserMessage}</div></div>`;
+
+    textarea.disabled = true;
+    document.querySelector('#chat-input-area button').disabled = true;
+
     input.value = '';
     chat.innerHTML += `<div class="message typing" id="typing-indicator"><em>답변을 작성 중입니다...</em></div>`;
     chat.scrollTop = chat.scrollHeight;
@@ -232,7 +236,6 @@ async function sendMessage() {
     `;
     // chat.scrollTop = chat.scrollHeight;
     chat.scrollTop += 320;
-
     // highlight code
     document.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
 
@@ -265,6 +268,10 @@ async function sendMessage() {
     document.querySelectorAll('.tag.selected').forEach(tag => tag.classList.remove('selected'));
     selectedExpertise = null;
     // updateSendButtonState();
+
+    textarea.disabled = false;
+    document.querySelector('#chat-input-area button').disabled = false;
+    textarea.focus();
 }
 
 textarea.addEventListener("keydown", (e) => {
