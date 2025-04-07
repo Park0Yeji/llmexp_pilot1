@@ -78,72 +78,77 @@ if(platform.includes("mac")){
     document.addEventListener("keydown", e => keystrokes.push({ key: e.key, action: "down", time: Date.now() }));
     document.addEventListener("keyup", e => keystrokes.push({ key: e.key, action: "up", time: Date.now() }));
 }
-else{ //windows
-    let pendingKeyDown = null;
+else{ //windows 
     let lastInputValue = "";
+    let isKoreanMode = true; // Shift + Space 로 전환
 
-    textarea.addEventListener("keydown", (e) => {
-        const time = Date.now();
+    // QWERTY → 한글 두벌식 자모 매핑
+    const qwertyToHangul = {
+        r: "ㄱ", s: "ㄴ", e: "ㄷ", f: "ㄹ", a: "ㅁ", q: "ㅂ",
+        t: "ㅅ", d: "ㅇ", w: "ㅈ", c: "ㅊ", z: "ㅋ", x: "ㅌ",
+        v: "ㅍ", g: "ㅎ", k: "ㅏ", o: "ㅐ", i: "ㅑ", j: "ㅓ",
+        p: "ㅔ", u: "ㅕ", h: "ㅗ", y: "ㅛ", n: "ㅜ", b: "ㅠ",
+        m: "ㅡ", l: "ㅣ"
+    };
 
-        const ignoredKeys = ["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "CapsLock", "Tab", "Escape"];
+    document.addEventListener("keydown", (e) => {
+    const time = Date.now();
 
-        if (ignoredKeys.includes(e.key) || e.key === "Backspace" || e.key === "Enter") {
-            // 글자 아닌 키는 바로 저장
-            keystrokes.push({
-            key: e.key,
+    // Shift + Space → 한영 전환
+    if (e.key === " " && e.shiftKey) {
+        isKoreanMode = !isKoreanMode;
+        console.log("입력 언어 전환됨:", isKoreanMode ? "한글" : "영문");
+        return;
+    }
+
+    // 특수 키 (백스페이스, 엔터 등)
+    const specialKeys = ["Backspace", "Enter", "Tab", "Shift", "Control", "Alt", "Escape", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "CapsLock"];
+    if (specialKeys.includes(e.key)) {
+        keystrokes.push({
+        key: e.key,
+        action: "down",
+        time: time
+        });
+        return;
+    }
+
+    // 일반 문자 키
+    let recordedKey = e.key;
+        if (isKoreanMode && qwertyToHangul[e.key]) {
+            recordedKey = qwertyToHangul[e.key];
+        }
+
+        keystrokes.push({
+            key: recordedKey,
             action: "down",
             time: time
-            });
-            return;
-        }
-
-        // 그 외 문자 입력은 input에서 처리
-        pendingKeyDown = {
-            time: time,
-            key: null
-        };
+        });
     });
 
-    textarea.addEventListener("input", (e) => {
-        const currentValue = e.target.value;
-        const newText = currentValue.slice(lastInputValue.length);
-
-        if (newText && pendingKeyDown) {
-            const chars = Array.from(newText);
-            const inputTime = Date.now();
-
-            chars.forEach(char => {
-            keystrokes.push({
-                key: char,
-                action: "down",
-                time: pendingKeyDown.time
-            });
-
-            keystrokes.push({
-                key: char,
-                action: "up",
-                time: inputTime
-            });
-            });
-
-            pendingKeyDown = null;
-        }
-
-        lastInputValue = currentValue;
-    });
-
-    textarea.addEventListener("keyup", (e) => {
+    // keyup도 기록 (자모 유지)
+    document.addEventListener("keyup", (e) => {
         const time = Date.now();
 
-        const ignoredKeys = ["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "CapsLock", "Tab", "Escape"];
-
-        if (ignoredKeys.includes(e.key) || e.key === "Backspace" || e.key === "Enter") {
+        const specialKeys = ["Backspace", "Enter", "Tab", "Shift", "Control", "Alt", "Escape", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "CapsLock"];
+        if (specialKeys.includes(e.key)) {
             keystrokes.push({
             key: e.key,
             action: "up",
             time: time
             });
+            return;
         }
+
+        let recordedKey = e.key;
+        if (isKoreanMode && qwertyToHangul[e.key]) {
+            recordedKey = qwertyToHangul[e.key];
+        }
+
+        keystrokes.push({
+            key: recordedKey,
+            action: "up",
+            time: time
+        });
     });
 }
 
