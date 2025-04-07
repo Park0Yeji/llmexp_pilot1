@@ -78,27 +78,73 @@ if(platform.includes("mac")){
     document.addEventListener("keydown", e => keystrokes.push({ key: e.key, action: "down", time: Date.now() }));
     document.addEventListener("keyup", e => keystrokes.push({ key: e.key, action: "up", time: Date.now() }));
 }
-else{
+else{ //windows
+    let pendingKeyDown = null;
     let lastInputValue = "";
 
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Process") return;
-        keystrokes.push({
-          key: e.key,
-          action: "down",
-          time: Date.now()
-        });
-      });
-      
-      document.addEventListener("keyup", (e) => {
-        if (e.key === "Process") return;
-        keystrokes.push({
-          key: e.key,
-          action: "up",
-          time: Date.now()
-        });
-      });
+    textarea.addEventListener("keydown", (e) => {
+        const time = Date.now();
 
+        const ignoredKeys = ["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "CapsLock", "Tab", "Escape"];
+
+        if (ignoredKeys.includes(e.key) || e.key === "Backspace" || e.key === "Enter") {
+            // 글자 아닌 키는 바로 저장
+            keystrokes.push({
+            key: e.key,
+            action: "down",
+            time: time
+            });
+            return;
+        }
+
+        // 그 외 문자 입력은 input에서 처리
+        pendingKeyDown = {
+            time: time,
+            key: null
+        };
+    });
+
+    textarea.addEventListener("input", (e) => {
+        const currentValue = e.target.value;
+        const newText = currentValue.slice(lastInputValue.length);
+
+        if (newText && pendingKeyDown) {
+            const chars = Array.from(newText);
+            const inputTime = Date.now();
+
+            chars.forEach(char => {
+            keystrokes.push({
+                key: char,
+                action: "down",
+                time: pendingKeyDown.time
+            });
+
+            keystrokes.push({
+                key: char,
+                action: "up",
+                time: inputTime
+            });
+            });
+
+            pendingKeyDown = null;
+        }
+
+        lastInputValue = currentValue;
+    });
+
+    textarea.addEventListener("keyup", (e) => {
+        const time = Date.now();
+
+        const ignoredKeys = ["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "CapsLock", "Tab", "Escape"];
+
+        if (ignoredKeys.includes(e.key) || e.key === "Backspace" || e.key === "Enter") {
+            keystrokes.push({
+            key: e.key,
+            action: "up",
+            time: time
+            });
+        }
+    });
 }
 
 // Mouse
@@ -397,4 +443,10 @@ function fixLatexSyntax(text) {
     // 괄호 안에 LaTeX-like 문법이 있으면 \( ... \) 으로 변환 (inline 수식)
     text = text.replace(/\(([^()]*?(\\frac|\\sqrt|[=_^]|[a-zA-Z]\([^)]*\)).*?)\)/g, (_, expr) => `\\(${expr}\\)`);
     return text;
-  }
+}
+
+function detectCharType(char) {
+    if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(char)) return "한글";
+    if (/[a-zA-Z]/.test(char)) return "영문";
+    return "기타"; // 숫자, 특수문자 등
+}
