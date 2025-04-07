@@ -71,9 +71,35 @@ async function startTask() {
     document.getElementById("exit").classList.remove("hidden"); 
 }
 
+const platform = navigator.platform.toLowerCase();
+
 // Key
-document.addEventListener("keydown", e => keystrokes.push({ key: e.key, action: "down", time: Date.now() }));
-document.addEventListener("keyup", e => keystrokes.push({ key: e.key, action: "up", time: Date.now() }));
+if(platform.includes("mac")){
+    document.addEventListener("keydown", e => keystrokes.push({ key: e.key, action: "down", time: Date.now() }));
+    document.addEventListener("keyup", e => keystrokes.push({ key: e.key, action: "up", time: Date.now() }));
+}
+else{
+    let lastInputValue = "";
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Process") return;
+        keystrokes.push({
+          key: e.key,
+          action: "down",
+          time: Date.now()
+        });
+      });
+      
+      document.addEventListener("keyup", (e) => {
+        if (e.key === "Process") return;
+        keystrokes.push({
+          key: e.key,
+          action: "up",
+          time: Date.now()
+        });
+      });
+
+}
 
 // Mouse
 document.addEventListener("mousedown", e => {
@@ -213,11 +239,12 @@ async function sendMessage() {
     const data = await response.json();
     const gptMessage = data.choices[0].message.content;
 
-
+    const fixedMessage = fixLatexSyntax(gptMessage);
     messageHistory.push({ role: "assistant", content: gptMessage });
-    const htmlContent = marked.parse(gptMessage);
+    const htmlContent = marked.parse(fixedMessage);
     // document.getElementById('typing-indicator')?.remove();
     // chat.innerHTML += `<div class="message"><div>${htmlContent}</div></div>`;
+    
     document.getElementById('typing-indicator')?.remove();
     chat.innerHTML += `
     <div class="message">
@@ -234,6 +261,10 @@ async function sendMessage() {
         </div>
     </div>
     `;
+
+    if (window.MathJax) {
+        MathJax.typesetPromise(); // 최신 MathJax v3 문법
+    }
     // chat.scrollTop = chat.scrollHeight;
     chat.scrollTop += 320;
     // highlight code
@@ -355,3 +386,15 @@ function submitRating(score) {
         ratingUI.innerHTML += `<div class="saved-msg" style="margin-top: 8px; color: #00a873; font-weight: bold;">만족도 ${score}/5점으로 저장되었습니다.</div>`;
     }
 }
+
+function fixLatexSyntax(text) {
+    // [ ... ] → \[ ... \] (display 수식)
+    // if(text.includes('\\')){
+    //     text = text.replace(/\\\[(.*?)\\\]/g, (_, expr) => `\\[${expr}\\]`);
+    // }
+    text = text.replace(/\[\s*\\?([^\]]+?)\s*\]/g, (_, expr) => `\\[${expr}\\]`);
+
+    // 괄호 안에 LaTeX-like 문법이 있으면 \( ... \) 으로 변환 (inline 수식)
+    text = text.replace(/\(([^()]*?(\\frac|\\sqrt|[=_^]|[a-zA-Z]\([^)]*\)).*?)\)/g, (_, expr) => `\\(${expr}\\)`);
+    return text;
+  }
